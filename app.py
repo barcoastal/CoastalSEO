@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-from api.client import get_credentials
+from api.client import get_credentials, get_last_error
 from api.search_analytics import get_performance_over_time, query_search_analytics, get_top_queries, get_top_pages
 from utils.formatting import format_number, format_ctr, format_position, format_delta, format_ctr_delta, format_position_delta
 from components.charts import performance_line_chart
@@ -36,8 +36,10 @@ def main():
             "Token file path: {}\n"
             "GOOGLE_TOKEN_JSON env var set: {}\n"
             "Working dir: {}\n"
-            "Project dir: {}".format(
-                token_path.exists(), token_path, has_env, os.getcwd(), base
+            "Project dir: {}\n"
+            "Error: {}".format(
+                token_path.exists(), token_path, has_env, os.getcwd(), base,
+                get_last_error()
             )
         )
         st.info("Set the GOOGLE_TOKEN_JSON environment variable or run `python3 setup_auth.py` locally.")

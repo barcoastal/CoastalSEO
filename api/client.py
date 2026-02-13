@@ -2,6 +2,7 @@
 
 import json
 import os
+import traceback
 from pathlib import Path
 
 from google.oauth2.credentials import Credentials
@@ -9,9 +10,19 @@ from google.auth.transport.requests import Request
 
 from utils.constants import SCOPES, TOKEN_FILE
 
+# Store last error for debug display
+_last_error = None
+
+
+def get_last_error():
+    """Return the last credential loading error for debugging."""
+    return _last_error
+
 
 def _load_credentials():
     """Load and refresh credentials from saved token file or env var."""
+    global _last_error
+    _last_error = None
     data = None
 
     # Try 1: token file relative to project root
@@ -19,9 +30,10 @@ def _load_credentials():
     token_path = base / TOKEN_FILE
     if token_path.exists():
         try:
-            data = json.loads(token_path.read_text())
-        except (json.JSONDecodeError, OSError):
-            pass
+            raw = token_path.read_text()
+            data = json.loads(raw)
+        except (json.JSONDecodeError, OSError) as e:
+            _last_error = "File read/parse error: {}".format(e)
 
     # Try 2: GOOGLE_TOKEN_JSON environment variable
     if data is None:
@@ -29,32 +41,42 @@ def _load_credentials():
         if env_token:
             try:
                 data = json.loads(env_token)
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError as e:
+                _last_error = "Env var JSON parse error: {}".format(e)
 
     if data is None:
+        if _last_error is None:
+            _last_error = "No token file and no GOOGLE_TOKEN_JSON env var"
         return None
 
-    creds = Credentials(
-        token=data.get("token"),
-        refresh_token=data.get("refresh_token"),
-        token_uri=data.get("token_uri"),
-        client_id=data.get("client_id"),
-        client_secret=data.get("client_secret"),
-        scopes=data.get("scopes", SCOPES),
-    )
+    try:
+        creds = Credentials(
+            token=data.get("token"),
+            refresh_token=data.get("refresh_token"),
+            token_uri=data.get("token_uri"),
+            client_id=data.get("client_id"),
+            client_secret=data.get("client_secret"),
+            scopes=data.get("scopes", SCOPES),
+        )
+    except Exception as e:
+        _last_error = "Credentials creation failed: {}".format(e)
+        return None
 
-    if creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-        # Save refreshed token back to file if possible
-        data["token"] = creds.token
-        if creds.expiry:
-            data["expiry"] = creds.expiry.isoformat()
-        try:
-            token_path.parent.mkdir(parents=True, exist_ok=True)
-            token_path.write_text(json.dumps(data, indent=2))
-        except OSError:
-            pass
+    try:
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            data["token"] = creds.token
+            if creds.expiry:
+                data["expiry"] = creds.expiry.isoformat()
+            try:
+                token_path.parent.mkdir(parents=True, exist_ok=True)
+                token_path.write_text(json.dumps(data, indent=2))
+            except OSError:
+                pass
+    except Exception as e:
+        _last_error = "Token refresh failed: {}. Returning stale credentials.".format(e)
+        # Still return the creds even if refresh failed — the token might still work
+        return creds
 
     return creds
 
