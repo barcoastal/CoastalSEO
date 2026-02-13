@@ -21,9 +21,26 @@ SITE_URL = "sc-domain:coastaldebt.com"
 
 
 def main():
+    import os
+    from pathlib import Path
+
     creds = get_credentials()
     if not creds:
-        st.error("No API token found. Run `python3 setup_auth.py` to authorize.")
+        # Debug info for deployment troubleshooting
+        base = Path(__file__).resolve().parent
+        token_path = base / "tokens" / "token.json"
+        has_env = bool(os.environ.get("GOOGLE_TOKEN_JSON", ""))
+        st.error("No API token found.")
+        st.code(
+            "Token file exists: {}\n"
+            "Token file path: {}\n"
+            "GOOGLE_TOKEN_JSON env var set: {}\n"
+            "Working dir: {}\n"
+            "Project dir: {}".format(
+                token_path.exists(), token_path, has_env, os.getcwd(), base
+            )
+        )
+        st.info("Set the GOOGLE_TOKEN_JSON environment variable or run `python3 setup_auth.py` locally.")
         st.stop()
 
     with st.sidebar:
