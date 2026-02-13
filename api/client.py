@@ -1,6 +1,7 @@
 """Build authenticated Google API service objects."""
 
 import json
+import os
 from pathlib import Path
 
 from google.oauth2.credentials import Credentials
@@ -10,13 +11,30 @@ from utils.constants import SCOPES, TOKEN_FILE
 
 
 def _load_credentials():
-    """Load and refresh credentials from saved token."""
+    """Load and refresh credentials from saved token file or env var."""
+    data = None
+
+    # Try 1: token file relative to project root
     base = Path(__file__).resolve().parent.parent
     token_path = base / TOKEN_FILE
-    if not token_path.exists():
+    if token_path.exists():
+        try:
+            data = json.loads(token_path.read_text())
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Try 2: GOOGLE_TOKEN_JSON environment variable
+    if data is None:
+        env_token = os.environ.get("GOOGLE_TOKEN_JSON", "")
+        if env_token:
+            try:
+                data = json.loads(env_token)
+            except json.JSONDecodeError:
+                pass
+
+    if data is None:
         return None
 
-    data = json.loads(token_path.read_text())
     creds = Credentials(
         token=data.get("token"),
         refresh_token=data.get("refresh_token"),
@@ -28,11 +46,15 @@ def _load_credentials():
 
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
-        # Save refreshed token
+        # Save refreshed token back to file if possible
         data["token"] = creds.token
         if creds.expiry:
             data["expiry"] = creds.expiry.isoformat()
-        token_path.write_text(json.dumps(data, indent=2))
+        try:
+            token_path.parent.mkdir(parents=True, exist_ok=True)
+            token_path.write_text(json.dumps(data, indent=2))
+        except OSError:
+            pass
 
     return creds
 
