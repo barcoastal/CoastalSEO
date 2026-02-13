@@ -2,7 +2,7 @@
 
 import json
 import os
-import traceback
+import re
 from pathlib import Path
 
 from google.oauth2.credentials import Credentials
@@ -31,6 +31,8 @@ def _load_credentials():
     if token_path.exists():
         try:
             raw = token_path.read_text()
+            # Strip control characters that cloud platforms may inject
+            raw = re.sub(r'[\x00-\x09\x0b\x0c\x0e-\x1f\x7f]', '', raw)
             data = json.loads(raw)
         except (json.JSONDecodeError, OSError) as e:
             _last_error = "File read/parse error: {}".format(e)
@@ -40,6 +42,8 @@ def _load_credentials():
         env_token = os.environ.get("GOOGLE_TOKEN_JSON", "")
         if env_token:
             try:
+                # Strip control characters that cloud platforms may inject
+                env_token = re.sub(r'[\x00-\x09\x0b\x0c\x0e-\x1f\x7f]', '', env_token)
                 data = json.loads(env_token)
             except json.JSONDecodeError as e:
                 _last_error = "Env var JSON parse error: {}".format(e)

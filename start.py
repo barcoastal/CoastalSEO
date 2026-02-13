@@ -5,6 +5,7 @@ then launches Streamlit.
 """
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -33,6 +34,8 @@ def setup_token():
 
     token_content = os.environ.get("GOOGLE_TOKEN_JSON", "")
     if token_content:
+        # Strip control characters that Railway may inject
+        token_content = re.sub(r'[\x00-\x09\x0b\x0c\x0e-\x1f\x7f]', '', token_content)
         token_path = tokens_dir / "token.json"
         token_path.write_text(token_content)
         print("[start.py] Created {}".format(token_path))
