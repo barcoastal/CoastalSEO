@@ -18,6 +18,9 @@ def main():
         st.error("No API token found.")
         st.stop()
 
+    from components.sidebar import render_sidebar
+    render_sidebar()
+
     st.title("Sitemap Management")
 
     tip_box("Sitemap Best Practices",

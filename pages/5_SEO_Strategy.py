@@ -20,6 +20,9 @@ def main():
         st.error("No API token found.")
         st.stop()
 
+    from components.sidebar import render_sidebar
+    render_sidebar()
+
     st.title("SEO Strategy & Content Recommendations")
     st.caption("Data-driven action plan for the Coastal Debt SEO team")
 

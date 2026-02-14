@@ -167,6 +167,9 @@ def main():
         st.error("No API token found.")
         st.stop()
 
+    from components.sidebar import render_sidebar
+    render_sidebar()
+
     st.title("AI SEO Advisor")
     st.caption("Chat with Claude about your site's SEO performance and get personalized recommendations")
 

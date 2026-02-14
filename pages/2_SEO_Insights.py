@@ -28,6 +28,9 @@ def main():
         st.error("No API token found.")
         st.stop()
 
+    from components.sidebar import render_sidebar
+    render_sidebar()
+
     st.title("SEO Insights")
     st.caption("Actionable reports for the Coastal Debt SEO team")
 

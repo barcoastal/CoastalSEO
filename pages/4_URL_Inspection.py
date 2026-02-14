@@ -54,6 +54,9 @@ def main():
         st.error("No API token found.")
         st.stop()
 
+    from components.sidebar import render_sidebar
+    render_sidebar()
+
     st.title("URL Inspection")
     st.caption("Daily quota: {} inspections".format(URL_INSPECTION_DAILY_QUOTA))
 

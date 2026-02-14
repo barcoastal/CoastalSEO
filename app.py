@@ -45,9 +45,8 @@ def main():
         st.info("Set the GOOGLE_TOKEN_JSON environment variable or run `python3 setup_auth.py` locally.")
         st.stop()
 
-    with st.sidebar:
-        st.title("Coastal Debt")
-        st.caption("coastaldebt.com")
+    from components.sidebar import render_sidebar
+    render_sidebar()
 
     st.title("Dashboard Overview")
 
