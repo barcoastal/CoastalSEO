@@ -134,11 +134,18 @@ When giving advice:
 
 def get_ai_response(messages, site_data):
     """Get a response from Claude API."""
+    import os
     import anthropic
 
-    api_key = st.secrets.get("anthropic", {}).get("api_key", "")
+    # Try env var first, then st.secrets
+    api_key = os.environ.get("api_key", "") or os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
-        return "Error: Anthropic API key not configured in .streamlit/secrets.toml"
+        try:
+            api_key = st.secrets.get("anthropic", {}).get("api_key", "")
+        except Exception:
+            pass
+    if not api_key:
+        return "Error: Anthropic API key not found. Set the `api_key` environment variable."
 
     client = anthropic.Anthropic(api_key=api_key)
 
