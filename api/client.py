@@ -86,12 +86,9 @@ def _needs_refresh(creds):
         return True
     # Check expiry manually (google-auth might not have it set)
     if creds.expiry:
-        now = datetime.now(timezone.utc)
-        expiry = creds.expiry
-        if expiry.tzinfo is None:
-            expiry = expiry.replace(tzinfo=timezone.utc)
+        now = datetime.utcnow()
         # Refresh 5 minutes before expiry
-        remaining = (expiry - now).total_seconds()
+        remaining = (creds.expiry - now).total_seconds()
         if remaining < 300:
             return True
     return False
@@ -117,13 +114,13 @@ def _load_credentials():
         _last_error = "No token file found and GOOGLE_REFRESH_TOKEN/GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET env vars not set"
         return None
 
-    # Parse expiry if present
+    # Parse expiry if present (must be naive UTC — google-auth uses naive datetimes)
     expiry = None
     if data.get("expiry"):
         try:
             expiry = datetime.fromisoformat(data["expiry"])
-            if expiry.tzinfo is None:
-                expiry = expiry.replace(tzinfo=timezone.utc)
+            if expiry.tzinfo is not None:
+                expiry = expiry.replace(tzinfo=None)
         except (ValueError, TypeError):
             pass
 
