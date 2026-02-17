@@ -1,6 +1,6 @@
 """AI SEO Advisor - Chat with Claude about your site's SEO performance."""
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import streamlit as st
 
@@ -181,10 +181,35 @@ def main():
     if "site_summary" not in st.session_state:
         with st.spinner("Loading your Search Console data..."):
             st.session_state.site_summary = get_site_summary()
+            st.session_state.site_data_loaded_at = datetime.now().strftime("%H:%M:%S")
 
     # Sidebar with quick actions
     with st.sidebar:
         st.markdown("---")
+
+        # Refresh data button
+        col_refresh, col_clear = st.columns(2)
+        with col_refresh:
+            if st.button("Refresh Data", use_container_width=True, type="primary"):
+                # Clear cached site data so it gets re-fetched
+                st.session_state.pop("site_summary", None)
+                # Clear any cached API responses
+                st.cache_data.clear()
+                # Add a system-like message so the AI knows data was refreshed
+                st.session_state.advisor_messages.append({
+                    "role": "user",
+                    "content": "I've made changes to my site. Please refresh the data and give me an updated analysis of my current SEO performance compared to before.",
+                })
+                st.rerun()
+        with col_clear:
+            if st.button("Clear Chat", use_container_width=True):
+                st.session_state.advisor_messages = []
+                st.session_state.pop("site_summary", None)
+                st.rerun()
+
+        if "site_data_loaded_at" in st.session_state:
+            st.caption("Data loaded at {}".format(st.session_state.site_data_loaded_at))
+
         st.markdown("**Quick Questions**")
         quick_questions = [
             "What are my biggest SEO opportunities right now?",
@@ -200,10 +225,6 @@ def main():
             if st.button(q, key="quick_{}".format(hash(q)), use_container_width=True):
                 st.session_state.advisor_messages.append({"role": "user", "content": q})
                 st.rerun()
-
-        if st.button("Clear Chat", use_container_width=True):
-            st.session_state.advisor_messages = []
-            st.rerun()
 
     # Display chat history
     for msg in st.session_state.advisor_messages:
